@@ -1,4 +1,5 @@
 use std::{convert::TryInto, sync::Arc};
+ use rayon::prelude::*;
 
 use arrow::{
     array::ArrayRef,
@@ -258,13 +259,21 @@ fn odbc_batch_to_arrow_columns(
     column_strategies: &[Box<dyn ReadStrategy>],
     batch: &ColumnarBuffer<AnyBuffer>,
 ) -> Result<Vec<ArrayRef>, MappingError> {
-    let arrow_columns = column_strategies
-        .iter()
-        .enumerate()
-        .map(|(index, strat)| {
-            let column_view = batch.column(index);
-            strat.fill_arrow_array(column_view)
-        })
-        .collect::<Result<Vec<_>, _>>()?;
+    let arrow_columns = (0..column_strategies.len()).map(|i| {
+        let strat = &column_strategies[i];
+        let column_view = batch.column(i);
+        (strat, column_view)
+    }).collect::<Vec<_>>().par_iter().map(|(strat, column_view)| {
+        strat.fill_arrow_array(*column_view)
+    }).collect::<Result<Vec<_>, _>>()?;
+    // let arrow_columns = column_strategies
+    //     .as_parallel_slice()
+    //     .par_iter()
+    //     .enumerate()
+    //     .map(|(index, strat)| {
+    //         let column_view = batch.column(index);
+    //         strat.fill_arrow_array(column_view)
+    //     })
+    //     .collect::<Result<Vec<_>, _>>()?;
     Ok(arrow_columns)
 }

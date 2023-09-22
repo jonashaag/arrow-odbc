@@ -15,10 +15,10 @@ pub trait MapOdbcToArrow {
 
     fn map_with<U>(
         nullable: bool,
-        odbc_to_arrow: impl Fn(&U) -> Result<Self::ArrowElement, MappingError> + 'static,
+        odbc_to_arrow: impl Fn(&U) -> Result<Self::ArrowElement, MappingError> + 'static + Send + Sync,
     ) -> Box<dyn ReadStrategy>
     where
-        U: Item + 'static;
+        U: Send + Sync + Item + 'static;
 
     fn identical(nullable: bool) -> Box<dyn ReadStrategy>
     where
@@ -27,16 +27,16 @@ pub trait MapOdbcToArrow {
 
 impl<T> MapOdbcToArrow for T
 where
-    T: ArrowPrimitiveType,
+    T: Send + Sync + ArrowPrimitiveType,
 {
     type ArrowElement = T::Native;
 
     fn map_with<U>(
         nullable: bool,
-        odbc_to_arrow: impl Fn(&U) -> Result<Self::ArrowElement, MappingError> + 'static,
+        odbc_to_arrow: impl Fn(&U) -> Result<Self::ArrowElement, MappingError> + 'static + Send + Sync,
     ) -> Box<dyn ReadStrategy>
     where
-        U: Item + 'static,
+        U: Send + Sync + Item + 'static,
     {
         if nullable {
             Box::new(NullableStrategy::<Self, U, _>::new(odbc_to_arrow))
@@ -71,6 +71,7 @@ impl<T> NonNullDirectStrategy<T> {
 
 impl<T> ReadStrategy for NonNullDirectStrategy<T>
 where
+    T: Send + Sync,
     T: ArrowPrimitiveType,
     T::Native: Item,
 {
@@ -100,6 +101,7 @@ impl<T> NullableDirectStrategy<T> {
 
 impl<T> ReadStrategy for NullableDirectStrategy<T>
 where
+    T: Send + Sync,
     T: ArrowPrimitiveType,
     T::Native: Item,
 {
@@ -135,9 +137,9 @@ impl<P, O, F> NonNullableStrategy<P, O, F> {
 
 impl<P, O, F> ReadStrategy for NonNullableStrategy<P, O, F>
 where
-    P: ArrowPrimitiveType,
-    O: Item,
-    F: Fn(&O) -> Result<P::Native, MappingError>,
+    P: Send + Sync + ArrowPrimitiveType,
+    O: Send + Sync + Item,
+    F: Send + Sync + Fn(&O) -> Result<P::Native, MappingError>,
 {
     fn buffer_desc(&self) -> BufferDesc {
         O::buffer_desc(false)
@@ -171,9 +173,9 @@ impl<P, O, F> NullableStrategy<P, O, F> {
 
 impl<P, O, F> ReadStrategy for NullableStrategy<P, O, F>
 where
-    P: ArrowPrimitiveType,
-    O: Item,
-    F: Fn(&O) -> Result<P::Native, MappingError>,
+    P: Send + Sync + ArrowPrimitiveType,
+    O: Send + Sync + Item,
+    F: Send + Sync + Fn(&O) -> Result<P::Native, MappingError>,
 {
     fn buffer_desc(&self) -> BufferDesc {
         O::buffer_desc(true)

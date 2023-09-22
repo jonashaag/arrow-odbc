@@ -33,6 +33,7 @@ arrow = { version = ">= 29, < 47", default-features = false }
 atoi = "2.0.0"
 chrono = "0.4.19"
 thiserror = "1.0.31"
+rayon = "1.8.0"
 
 # On windows we can not assume the default locale to be UTF-8, so we compile odbc-api with default
 # features implying the use of UTF-16 for queries, connection strings and error messages. This

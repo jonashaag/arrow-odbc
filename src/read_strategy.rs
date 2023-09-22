@@ -34,7 +34,7 @@ pub use self::{
 pub use self::map_odbc_to_arrow::MappingError;
 
 /// All decisions needed to copy data from an ODBC buffer to an Arrow Array
-pub trait ReadStrategy {
+pub trait ReadStrategy : Send + Sync {
     /// Describes the buffer which is bound to the ODBC cursor.
     fn buffer_desc(&self) -> BufferDesc;
 
